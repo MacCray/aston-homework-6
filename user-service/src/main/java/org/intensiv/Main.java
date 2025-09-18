@@ -14,8 +14,6 @@ public class Main {
             SpringApplication.run(Main.class, args);
         } catch (Exception e) {
             log.error("Критическая ошибка при запуске приложения", e);
-        } finally {
-            log.info("Завершение работы user-service");
         }
     }
 }

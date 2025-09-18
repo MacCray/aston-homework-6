@@ -8,6 +8,7 @@ import org.intensiv.userapi.dto.response.UserResponseDto;
 import org.intensiv.userapi.entity.User;
 import org.intensiv.userapi.exception.DuplicateEmailException;
 import org.intensiv.userapi.exception.UserNotFoundException;
+import org.intensiv.userapi.kafka.UserEventProducer;
 import org.intensiv.userapi.mapper.UserMapper;
 import org.intensiv.userapi.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,8 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final UserEventProducer kafkaProducer;
+
 
     @Transactional
     public UserResponseDto createUser(CreateUserRequestDto requestDto) {
@@ -31,6 +34,7 @@ public class UserService {
         User user = userMapper.toUserEntity(requestDto);
         UserResponseDto responseDto = userMapper.toUserResponseDto(userRepository.save(user));
         log.info("Пользователь создан name={} email={}", requestDto.name(), requestDto.email());
+        kafkaProducer.produceUserCreated(responseDto.email());
         return responseDto;
     }
 
@@ -65,9 +69,12 @@ public class UserService {
     @Transactional
     public void deleteUser(Long id) {
         log.debug("Удаление пользователя id={}", id);
-        if (userRepository.deleteUserById(id) == 0){
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User c id:" + id + " не найден"));
+        if (userRepository.deleteUserById(id) == 0) {
             throw new UserNotFoundException("User c id:" + id + " не найден");
         }
         log.info("Пользователь удален id={}", id);
+        kafkaProducer.produceUserDeleted(user.getEmail());
     }
 }
