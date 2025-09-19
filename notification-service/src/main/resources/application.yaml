@@ -8,5 +8,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
     properties:
       spring.json.trusted.packages: "*"
+  mail:
+    host: localhost
+    port: 1025
 server:
   port: 8081
