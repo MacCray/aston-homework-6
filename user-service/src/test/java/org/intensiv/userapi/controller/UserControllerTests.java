@@ -6,12 +6,14 @@ import org.intensiv.userapi.dto.request.UpdateUserRequestDto;
 import org.intensiv.userapi.dto.response.UserResponseDto;
 import org.intensiv.userapi.exception.DuplicateEmailException;
 import org.intensiv.userapi.exception.UserNotFoundException;
+import org.intensiv.userapi.representation.UserModelAssembler;
 import org.intensiv.userapi.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -32,6 +34,8 @@ public class UserControllerTests {
     private static final Long USER_ID = 1L;
     @MockitoBean
     private UserService userService;
+    @MockitoBean
+    private UserModelAssembler assembler;
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -52,11 +56,13 @@ public class UserControllerTests {
     @DisplayName("Should create user")
     void createUser_WithValidData_ReturnsUser() throws Exception {
         when(userService.createUser(any(CreateUserRequestDto.class))).thenReturn(userResponseDto);
+        when(assembler.toModel(any(UserResponseDto.class)))
+                .thenReturn(EntityModel.of(userResponseDto));
 
         mockMvc.perform(post("/userapi/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createUserRequestDto)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("Роман Красиков"))
@@ -97,6 +103,8 @@ public class UserControllerTests {
     @DisplayName("Should get user by id")
     void getUser_WithValidId_ReturnsUser() throws Exception {
         when(userService.getUser(USER_ID)).thenReturn(userResponseDto);
+        when(assembler.toModel(any(UserResponseDto.class)))
+                .thenReturn(EntityModel.of(userResponseDto));
 
         mockMvc.perform(get("/userapi/users/{id}", USER_ID))
                 .andExpect(status().isOk())
@@ -136,17 +144,19 @@ public class UserControllerTests {
                 new UserResponseDto(2L, "Красиков Роман", "roman.krasikov@gmail.com")
         );
         when(userService.getAllUsers()).thenReturn(users);
+        when(assembler.toModel(any(UserResponseDto.class)))
+                .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
 
         mockMvc.perform(get("/userapi/users"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].name").value("Роман Красиков"))
-                .andExpect(jsonPath("$[0].email").value("krasikov.roman@gmail.com"))
-                .andExpect(jsonPath("$[1].id").value(2L))
-                .andExpect(jsonPath("$[1].name").value("Красиков Роман"))
-                .andExpect(jsonPath("$[1].email").value("roman.krasikov@gmail.com"));
+                .andExpect(jsonPath("$._embedded.userResponseDtoList.length()").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseDtoList[0].id").value(1L))
+                .andExpect(jsonPath("$._embedded.userResponseDtoList[0].name").value("Роман Красиков"))
+                .andExpect(jsonPath("$._embedded.userResponseDtoList[0].email").value("krasikov.roman@gmail.com"))
+                .andExpect(jsonPath("$._embedded.userResponseDtoList[1].id").value(2L))
+                .andExpect(jsonPath("$._embedded.userResponseDtoList[1].name").value("Красиков Роман"))
+                .andExpect(jsonPath("$._embedded.userResponseDtoList[1].email").value("roman.krasikov@gmail.com"));
         verify(userService).getAllUsers();
     }
 
@@ -155,6 +165,8 @@ public class UserControllerTests {
     void updateUser_WithValidIdAndData_ReturnsUpdatedUser() throws Exception {
         UserResponseDto updatedUser = new UserResponseDto(1L, "Роман Красиков", "krasikov.roman.new@gmail.com");
         when(userService.updateUser(eq(USER_ID), any(UpdateUserRequestDto.class))).thenReturn(updatedUser);
+        when(assembler.toModel(any(UserResponseDto.class)))
+                .thenReturn(EntityModel.of(updatedUser));
 
         mockMvc.perform(patch("/userapi/users/{id}", USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
