@@ -2,6 +2,8 @@ package org.intensiv.userapi.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.intensiv.common.dto.notification.Operation;
+import org.intensiv.common.mapper.NotificationEventMapper;
 import org.intensiv.userapi.dto.request.CreateUserRequestDto;
 import org.intensiv.userapi.dto.request.UpdateUserRequestDto;
 import org.intensiv.userapi.dto.response.UserResponseDto;
@@ -34,7 +36,7 @@ public class UserService {
         User user = userMapper.toUserEntity(requestDto);
         UserResponseDto responseDto = userMapper.toUserResponseDto(userRepository.save(user));
         log.info("Пользователь создан name={} email={}", requestDto.name(), requestDto.email());
-        kafkaProducer.produceUserCreated(responseDto.email());
+        kafkaProducer.produceUserEvent(NotificationEventMapper.INSTANCE.toNotificationEvent(Operation.CREATED, responseDto.email()));
         return responseDto;
     }
 
@@ -75,6 +77,6 @@ public class UserService {
             throw new UserNotFoundException("User c id:" + id + " не найден");
         }
         log.info("Пользователь удален id={}", id);
-        kafkaProducer.produceUserDeleted(user.getEmail());
+        kafkaProducer.produceUserEvent(NotificationEventMapper.INSTANCE.toNotificationEvent(Operation.DELETED, user.getEmail()));
     }
 }

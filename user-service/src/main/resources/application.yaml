@@ -19,3 +19,5 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     admin:
       auto-create: true
+    template:
+      default-topic: "user-events"

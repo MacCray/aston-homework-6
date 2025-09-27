@@ -1,6 +1,7 @@
 package org.intensiv.notificationservice.kafka;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.intensiv.common.dto.notification.NotificationEvent;
 import org.intensiv.notificationservice.service.EmailService;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -8,16 +9,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class UserEventListener {
     private final EmailService emailService;
 
-    @KafkaListener(topics = "user-events")
+    @KafkaListener(topics = "${spring.kafka.topic.user-events}")
     public void listen(NotificationEvent event) {
-        switch (event.operation()) {
-            case CREATED ->
-                    emailService.sendEmail(event.email(), "Уведомление от notification service", "Здравствуйте! Ваш аккаунт на сайте был успешно создан.");
-            case DELETED ->
-                    emailService.sendEmail(event.email(), "Уведомление от notification service", "Здравствуйте! Ваш аккаунт был удалён.");
-        }
+        log.info("Получено сообщение из Kafka: {}", event);
+        emailService.sendEmail(event);
     }
 }

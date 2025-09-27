@@ -17,8 +17,7 @@ class EmailController {
     private final EmailService emailService;
 
     @PostMapping(path = "/send-email", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public String sendEmail(@RequestBody @Valid SendEmailRequestDto request) {
+    public void sendEmail(@RequestBody @Valid SendEmailRequestDto request) {
         emailService.sendEmail(request.email(), request.subject(), request.body());
-        return "Письмо успешно отправлено на email: " + request.email();
     }
 }
